@@ -14,7 +14,21 @@ description: >
   contrato; se clasifican y documentan, pero no se ejecutan como refactor puro.
 ---
 
-# Refactorización de codebase (protocolo de Teseo) — v2.4
+# Refactorización de codebase (protocolo de Teseo) — v2.5.0-rc.1
+
+## Identidad de version, propósito y release
+
+La fuente canónica del release es `VERSION.json` (`2.5.0-rc.1`, candidato
+sin publicar como versión estable); el esquema de protocolo del runner es
+`teseo-v2.5` y es **independiente** de la versión de la distribución.
+Los 77 criterios se custodian por SHA-256 y cuenta, no por una promesa de
+77 transformadores automáticos. `CAPABILITIES.json` es el inventario
+verificable de lo implementado, probado, documental y pendiente.
+
+Antes de refactorizar, reconcilia el **propósito declarado y comprobado**
+del proyecto, su versionado efectivo y la compatibilidad de cada dimensión
+activa E(P). Si la versión real es incierta, NO afirmar equivalencia total.
+Ver `references/versionado-y-proposito.md` y `scripts/version_audit.py`.
 
 ## Principio rector
 
@@ -67,6 +81,29 @@ requieren un `RUN-CONTRACT.json` confiable, verificación de identidad pre/post 
 un runner capaz de imponer restricciones reales. Las instrucciones Markdown o
 un preflight opcional **no son un sandbox**. Ver `references/git-maquina-tiempo.md`,
 `references/gobernanza-ejecucion.md` y `references/jugadas-git.md`.
+
+## Cuarto mandato v2.5: evidencia y ejecución mínima verificable
+
+La v2.5 añade `references/gobernanza-v2.5.md` y herramientas ejecutables
+acotadas. La gobernanza real no nace de escribir reglas: antes de cada cambio
+se verifica identidad Git, ámbito de archivo, autorización con caducidad,
+preimagen y postimagen. Se emplea `scripts/path_policy.py` para detectar
+symlinks/rutas fuera de alcance; `scripts/teseo_runner.py` sólo permite reemplazo
+atómico/recuperación de archivos existentes bajo contrato confiable externo.
+Cuando el entorno no permita enforcement verificable, **BLOCKED**: no habilitar
+escrituras directas como atajo.
+
+La inspección pasiva no debe ejecutar ejecutables encontrados en `PATH`, hooks,
+fsmonitor, filtros o scripts del proyecto. El conjunto de invariantes se
+verifica por contratos explícitos mediante `scripts/verify_invariants.py`;
+`VERIFIED` es específico al alcance, no equivalencia absoluta. Los vínculos
+de `scripts/evidence_graph.py` requieren fuente/hash, pero no prueban causalidad.
+
+**No confundir el alcance implementado:** la primitiva v2.5 cubre archivos
+regulares existentes en POSIX y recuperación de su contenido. No provee
+transacciones multiarchivo, aislamiento de todos los procesos, recuperación
+de efectos externos ni coordinación distribuida. Los demás flujos siguen
+sujetos a aprobación, simulación/aislamiento y resultado `PARTIAL` o `BLOCKED`.
 
 ## Líneas rojas (no negociables)
 
@@ -189,7 +226,7 @@ Construye E(P) por **activación condicional**. Para cada dimensión candidata:
 Usa `references/entorno-operacional.md` para el contrato y
 `references/adaptadores.md` para perfiles tecnológicos **opcionales**. Los
 adaptadores son ejemplos de implementación del contrato, no requisitos.
-`scripts/environment_probe.py` da inventario genérico read-only; scripts bajo
+`scripts/environment_probe.py` da inventario pasivo sin ejecutar herramientas detectadas; scripts bajo
 `scripts/adapters/` sólo se usan cuando el discovery confirma esa tecnología.
 
 ### Fase 0E — Reconstrucción bidireccional y segmentación
@@ -218,7 +255,7 @@ marcar LIMITATION y crear un snapshot seguro sólo mediante autorización.
   después de pérdida/compactación de contexto. Prohibir cambios de rama o
   repositorio implícitos. Un cambio HEAD esperado por commit validado se acepta
   sólo tras actualizar checkpoint por el coordinador.
-- `scripts/git_guard.py` sirve para inspeccionar y detectar deriva en lectura;
+- `scripts/git_guard.py` evita fsmonitor/hook de Git configurado en el repo al inspeccionar y sirve para detectar deriva;
   no puede impedir escrituras que pasen por fuera de él. El aislamiento fuerte
   requiere runner/permissions o sandbox OS. Ver gobernanza-ejecucion.md.
 
@@ -255,7 +292,7 @@ contrato, nodos AS-IS afectados, segmentos y relaciones, comparador, fingerprint
 rollback de código + recuperación de estado externo cuando aplique. Presenta el plan y espera confirmación.
 
 ### Fase 4 — Ejecución incremental
-Por paso: rehidrata contrato, verifica identidad y scope; registra pre-state (git/hash + E₀ activo), ejecuta el cambio mínimo en worktree autorizado,
+Por paso: rehidrata contrato, verifica identidad y scope con el runner confiable del entorno (para sustituciones acotadas existe `teseo_runner.py`); registra pre-state (git/hash + E₀ activo), ejecuta el cambio mínimo en worktree autorizado,
 corre paridad y smoke test, vuelve a medir E/Q, audita archivos alterados y actualiza changelog/ledger. **Si una
 dimensión activa de E cambia sin autorización, el paso falla aunque los tests
 pasen.** Si C rompe paridad: detén el cambio, diagnostica con Git y revierte exclusivamente las modificaciones atribuibles al paso y autorizadas; nunca uses `reset --hard`/`clean` como recuperación automática. Nunca actualices el golden

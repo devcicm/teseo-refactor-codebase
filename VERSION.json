@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "name": "refactor-codebase",
+  "release_version": "2.5.0-rc.1",
+  "release_channel": "release_candidate",
+  "protocol_version": "teseo-v2.5",
+  "guard_compatible_protocols": [
+    "teseo-v2.4",
+    "teseo-v2.5"
+  ],
+  "criteria": {
+    "count": 77,
+    "sha256": "bc2e0b053ff83c04bf2f44c73f961288101919a7c0cbf41c643ef3b53a075535",
+    "file": "references/criterios.md"
+  },
+  "version_scheme": "SemVer 2.0.0 for release identity; protocol and catalog have independent compatibility identities",
+  "purpose": "Auditar y refactorizar incrementalmente codigo existente conservando contratos observables; no ejecutar cambios funcionales o migraciones como refactor puro.",
+  "distribution_status": "CANDIDATE_NOT_RELEASED",
+  "source_of_truth": "VERSION.json"
+}

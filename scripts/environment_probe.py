@@ -6,8 +6,9 @@ executables conocidos y artefactos de dependencia/build. La presencia de un
 artefacto es evidencia candidata, NO prueba de que sea una dimensión activa E(P).
 """
 from __future__ import annotations
-import argparse, hashlib, json, os, platform, shutil, subprocess
+import argparse, hashlib, json, os, platform, shutil
 from pathlib import Path
+from path_policy import read_confined, Denied
 
 SKIP_DIRS={'.git','.hg','.svn','node_modules','vendor','dist','build','target','bin','obj','.venv','venv','__pycache__','.next','.cache'}
 TOOLS={
@@ -33,32 +34,36 @@ def sha256(p:Path)->str:
         for b in iter(lambda:f.read(1024*1024),b''): h.update(b)
     return h.hexdigest()
 
-def run(args):
-    try:
-        p=subprocess.run(args,capture_output=True,text=True,timeout=8,check=False)
-        out=(p.stdout or p.stderr).strip().splitlines()
-        return {'ok':p.returncode==0,'code':p.returncode,'summary':out[0][:500] if out else ''}
-    except Exception as e:
-        return {'ok':False,'error':f'{type(e).__name__}: {e}'}
+def installed_tools():
+    """Passive presence-only inventory; never invoke a project-controlled executable."""
+    result={}
+    for name,args in TOOLS.items():
+        candidate=shutil.which(args[0])
+        if candidate:
+            result[name]={'candidate_path':candidate,'executed':False,
+                          'trust':'UNVERIFIED_PATH', 'version':'NOT_PROBED'}
+    return result
 
 def artifacts(root:Path, limit=500):
     rows=[]
     for base,dirs,files in os.walk(root):
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not (Path(base)/d).is_symlink()]
         for name in files:
             p=Path(base)/name
-            if name in ARTIFACT_NAMES or p.suffix.lower() in ARTIFACT_SUFFIXES:
-                try: rows.append({'path':str(p.relative_to(root)),'bytes':p.stat().st_size,'sha256':sha256(p)})
-                except OSError: continue
+            if not p.is_symlink() and (name in ARTIFACT_NAMES or p.suffix.lower() in ARTIFACT_SUFFIXES):
+                try:
+                    relative=str(p.relative_to(root))
+                    raw=read_confined(root, relative, max_bytes=10_000_000)
+                    rows.append({'path':relative,'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()})
+                except (OSError, Denied): continue
                 if len(rows)>=limit: return rows+[{'truncated':True}]
     return sorted(rows,key=lambda x:x.get('path',''))
 
 def probe(root:Path):
-    root=root.resolve(); tools={}
-    for name,args in TOOLS.items():
-        if shutil.which(args[0]): tools[name]=run(args)
+    root=root.resolve()
+    tools=installed_tools()
     return {
-      'probe':'refactor-codebase-environment-v2.3','read_only_intent':True,
+      'probe':'refactor-codebase-environment-v2.5','read_only_intent':True, 'external_commands_executed':0,
       'root':str(root),'cwd':os.getcwd(),
       'platform':{'system':platform.system(),'release':platform.release(),'machine':platform.machine(),'python_for_probe':platform.python_version()},
       'detected_tools':tools,'candidate_artifacts':artifacts(root),

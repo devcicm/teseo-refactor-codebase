@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "product": "refactor-codebase",
+  "version_source": "VERSION.json",
+  "classification_rules": {
+    "TESTED_SCOPE": "Capacidad implementada y verificada en fixtures especificos; no garantia universal.",
+    "IMPLEMENTED_LIMITED": "Existe implementacion; alcance o dependencias estan limitados.",
+    "DOCUMENTED_PROCEDURE": "Procedimiento requerido de agente, no ejecutor autonomo.",
+    "NOT_IMPLEMENTED": "No afirmar capacidad automatica."
+  },
+  "capabilities": [
+    {
+      "id": "CATALOG_77",
+      "status": "DOCUMENTED_PROCEDURE",
+      "claim": "77 criterios disponibles para auditoria, no 77 detectores automaticos",
+      "evidence": [
+        "references/criterios.md"
+      ]
+    },
+    {
+      "id": "DISCOVERY_STATIC",
+      "status": "TESTED_SCOPE",
+      "claim": "Inspeccion estatica acotada de archivos y patrones; hallazgos candidatos",
+      "evidence": [
+        "scripts/discover.py",
+        "tests/test_v25_adversarial.py"
+      ]
+    },
+    {
+      "id": "ENVIRONMENT_INVENTORY",
+      "status": "IMPLEMENTED_LIMITED",
+      "claim": "Inventario pasivo de artefactos observables; no verifica runtimes ejecutandolos",
+      "evidence": [
+        "scripts/environment_probe.py"
+      ]
+    },
+    {
+      "id": "GIT_GUARD",
+      "status": "TESTED_SCOPE",
+      "claim": "Detecta ciertas derivas Git; no bloquea todas las escrituras del proceso",
+      "evidence": [
+        "scripts/git_guard.py",
+        "tests/test_git_guard.py"
+      ]
+    },
+    {
+      "id": "ATOMIC_FILE_WRITE",
+      "status": "TESTED_SCOPE",
+      "claim": "Sustitucion y recuperacion de un archivo regular existente bajo precondiciones, no estado externo",
+      "evidence": [
+        "scripts/teseo_runner.py",
+        "tests/test_v25_runner.py"
+      ]
+    },
+    {
+      "id": "INVARIANT_VERIFIER",
+      "status": "TESTED_SCOPE",
+      "claim": "Compara invariantes suministrados; no demuestra equivalencia completa",
+      "evidence": [
+        "scripts/verify_invariants.py",
+        "tests/test_v25_evidence.py"
+      ]
+    },
+    {
+      "id": "ARCHITECTURE_AS_IS",
+      "status": "DOCUMENTED_PROCEDURE",
+      "claim": "El agente reconstruye diagramas; no hay generador automatico universal",
+      "evidence": [
+        "references/diagramas.md",
+        "references/reconstruccion-bidireccional.md"
+      ]
+    },
+    {
+      "id": "VERSION_PURPOSE_GATE",
+      "status": "TESTED_SCOPE",
+      "claim": "Auditor estatico de versiones declaradas y coherencia interna de la distribucion, no prueba compatibilidad runtime",
+      "evidence": [
+        "scripts/version_audit.py",
+        "tests/test_version_audit.py"
+      ]
+    },
+    {
+      "id": "OS_SANDBOX",
+      "status": "NOT_IMPLEMENTED",
+      "claim": "El paquete no suministra sandbox OS ni control de principal separado",
+      "evidence": [
+        "references/gobernanza-v2.5.md"
+      ]
+    },
+    {
+      "id": "EXTERNAL_STATE_RECOVERY",
+      "status": "NOT_IMPLEMENTED",
+      "claim": "No restaura bases de datos, servicios ni transacciones externas",
+      "evidence": [
+        "references/gobernanza-v2.5.md"
+      ]
+    }
+  ]
+}
