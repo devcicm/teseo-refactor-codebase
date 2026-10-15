@@ -5,12 +5,15 @@ No aplica un sandbox; NO intercepta comandos de otros agentes. El contrato se
 considera confiable sólo cuando lo proporciona un coordinador externo al repo.
 """
 import argparse
-import fnmatch
 import json
 import os
 from pathlib import Path, PurePosixPath
 import subprocess
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from path_policy import authorized, components, Denied, open_parent_confined
+
+TRUSTED_GIT = '/usr/bin/git' if Path('/usr/bin/git').is_file() else None
 
 UNTRUSTED_GIT_ENV = (
     'GIT_DIR', 'GIT_WORK_TREE', 'GIT_COMMON_DIR', 'GIT_INDEX_FILE',
@@ -24,18 +27,33 @@ class Blocked(Exception):
     pass
 
 
-def git(repo, *args, ok=True):
+def git_environment():
     env = dict(os.environ)
-    for key in UNTRUSTED_GIT_ENV:
-        env.pop(key, None)
+    for key in list(env):
+        if key.startswith('GIT_'):
+            env.pop(key, None)
+    env['GIT_CONFIG_NOSYSTEM'] = '1'
+    env['GIT_CONFIG_GLOBAL'] = os.devnull
+    env['GIT_CONFIG_SYSTEM'] = os.devnull
     env['GIT_NO_REPLACE_OBJECTS'] = '1'
     env['GIT_OPTIONAL_LOCKS'] = '0'
-    p = subprocess.run(['git', '-C', str(repo), '--no-pager', *args],
-                       capture_output=True, env=env, check=False)
+    env['GIT_EXTERNAL_DIFF'] = '0'
+    return env
+
+
+def git(repo, *args, ok=True):
+    if not TRUSTED_GIT or not os.path.isabs(TRUSTED_GIT):
+        raise Blocked('TRUSTED_GIT_UNAVAILABLE')
+    command=[TRUSTED_GIT, '-C', str(repo), '--no-optional-locks',
+             '-c', 'core.fsmonitor=false',
+             '-c', 'core.hooksPath=/dev/null',
+             '-c', 'core.untrackedCache=false',
+             '-c', 'diff.external=false',
+             '--no-pager', *args]
+    p=subprocess.run(command,capture_output=True,env=git_environment(),check=False,timeout=20)
     if ok and p.returncode:
         raise Blocked(f'git {args[0]} failed: {p.stderr.decode(errors="replace")[:300]}')
-    return p.stdout.decode('utf-8', errors='replace').strip()
-
+    return p.stdout.decode('utf-8',errors='replace').strip()
 
 def identity(root):
     root = Path(root).resolve()
@@ -55,62 +73,49 @@ def safe_patterns(patterns):
     if not isinstance(patterns, list) or not patterns:
         raise Blocked('EMPTY_SCOPE')
     for pat in patterns:
-        if not isinstance(pat, str) or not pat.strip() or pat.startswith('/') or '\\' in pat:
-            raise Blocked('INVALID_SCOPE_PATTERN')
-        if '..' in PurePosixPath(pat).parts or '.git' in PurePosixPath(pat).parts:
-            raise Blocked('INVALID_SCOPE_PATTERN')
+        try: components(pat)
+        except Denied as e: raise Blocked(str(e)) from e
     return patterns
 
 
 def check_path(root, relpath, patterns):
-    if not isinstance(relpath, str) or not relpath or '\\' in relpath:
-        raise Blocked('INVALID_PATH')
-    rel = PurePosixPath(relpath)
-    if rel.is_absolute() or '..' in rel.parts or '.git' in rel.parts or relpath in ('.', ''):
-        raise Blocked('INVALID_PATH')
-    normalized = rel.as_posix()
-    if normalized.startswith('./'):
-        normalized = normalized[2:]
-    if not any(fnmatch.fnmatchcase(normalized, p) for p in patterns):
-        raise Blocked(f'OUT_OF_SCOPE: {normalized}')
-    root = Path(root).resolve()
-    current = root
-    for item in rel.parts:
-        current = current / item
-        if current.is_symlink():
-            raise Blocked('SYMLINK_PATH')
-    target = current.resolve()
-    if not target.is_relative_to(root) or target == root:
-        raise Blocked('OUTSIDE_WORKTREE')
-    return normalized
-
+    try:
+        authorized(relpath, patterns)
+        rel=components(relpath)
+        current=Path(root).resolve()
+        for item in rel:
+            current=current/item
+            if current.is_symlink(): raise Blocked('SYMLINK_PATH')
+        target=current.resolve()
+        if not target.is_relative_to(Path(root).resolve()):
+            raise Blocked('OUTSIDE_WORKTREE')
+    except Denied as e:
+        raise Blocked(str(e)) from e
+    return relpath
 
 def status_paths(repo):
-    """Parse Git porcelain v1 -z, including rename/copy paths; ignores ignored files."""
-    env = dict(os.environ)
-    for key in UNTRUSTED_GIT_ENV:
-        env.pop(key, None)
-    env['GIT_OPTIONAL_LOCKS'] = '0'
-    p = subprocess.run(['git', '-C', str(repo), '--no-pager', 'status',
-                        '--porcelain=v1', '-z', '--untracked-files=all'],
-                       capture_output=True, env=env, check=True)
-    toks = p.stdout.split(b'\0')
-    out = []
-    i = 0
-    while i < len(toks) and toks[i]:
-        item = toks[i]
-        if len(item) < 4 or item[2:3] != b' ':
+    """Parse porcelain-v1 -z. No repo-provided fsmonitor or hooks executed."""
+    if not TRUSTED_GIT: raise Blocked('TRUSTED_GIT_UNAVAILABLE')
+    cmd=[TRUSTED_GIT, '-C', str(repo), '--no-optional-locks',
+         '-c', 'core.fsmonitor=false', '-c', 'core.hooksPath=/dev/null',
+         '-c', 'core.untrackedCache=false', '--no-pager', 'status',
+         '--porcelain=v1', '-z', '--untracked-files=all']
+    p=subprocess.run(cmd,capture_output=True,env=git_environment(),check=True,timeout=20)
+    toks=p.stdout.split(b'\0')
+    out=[]; i=0
+    while i<len(toks) and toks[i]:
+        item=toks[i]
+        if len(item)<4 or item[2:3]!=b' ':
             raise Blocked('UNEXPECTED_PORCELAIN')
-        xy = item[:2]
+        xy=item[:2]
         out.append(item[3:].decode(errors='surrogateescape'))
-        i += 1
+        i+=1
         if b'R' in xy or b'C' in xy:
-            if i >= len(toks) or not toks[i]:
+            if i>=len(toks) or not toks[i]:
                 raise Blocked('UNEXPECTED_PORCELAIN_RENAME')
             out.append(toks[i].decode(errors='surrogateescape'))
-            i += 1
+            i+=1
     return sorted(set(out))
-
 
 def check_contract(contract, mode, target=None):
     if not isinstance(contract, dict) or contract.get('protocol') != 'teseo-v2.4':

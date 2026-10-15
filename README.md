@@ -1,91 +1,66 @@
-# Teseo — Refactor Codebase Skill (v2.4)
+# Teseo — Refactor Codebase Skill v2.5
 
-**Skill de refactorización incremental verificable** inspirada en el barco de Teseo: sustituir piezas del software sin perder sus contratos funcionales observables. Agnóstica del lenguaje, framework, persistencia e infraestructura.
+Skill de **refactorización incremental con trazabilidad y comprobación de contratos**, fundamentada en el barco de Teseo. Independiente del lenguaje, framework, base de datos o sistema operativo analizado.
 
-> **Estado:** v2.4. Catálogo heredado de **77 criterios** preservados (N, D, FE, BE, ALG, RES y OBJ). Los criterios no son autorización automática para modificar código.
+## Evolución v2.5
 
-## Capacidades
+El catálogo **77 criterios originales** (N 10, D 6, FE 24, BE 22, ALG 5, RES 5, OBJ 5) se conserva sin renumeraciones. V2.5 agrega guardas ejecutables de alcance e integridad, pero **no implementa automáticamente los 77 criterios como transformaciones**.
 
-- **Descubrimiento y arqueología operacional:** análisis **top-down / bottom-up**, reconciliación de arquitectura observada, diagramas ASCII **AS-IS / AS-BUILT**, segmentación y relaciones con evidencia.
-- **Baseline y golden master:** capturas y comparadores reproducibles, no-regresión y detección de deriva del entorno.
-- **Git Time Machine:** lectura histórica con `log`, `show`, `blame`, `diff`, `merge-base`, `range-diff`, `reflog` y `bisect` diagnóstico; worktrees para referencia y transformación aislada.
-- **Gobernanza de ejecución:** contratos de alcance, control de ambigüedad, verificación de identidad (repo/worktree/rama/HEAD) y diagnóstico de desviaciones.
-- **Refactor atómico:** un paso verificable a la vez, con bitácora y recuperación documentada.
-- **Análisis por evidencia:** detección genérica y adaptadores opcionales cuando el repositorio demuestra que aplican.
-
-## Flujo general
-
-```text
-Petición / Alcance
-       |
-       v
-Safety preflight + Discovery
-       |
-       v
-TOP-DOWN <--> BOTTOM-UP
-       |
-       v
-Reconciliación + AS-IS + Segmentos
-       |
-       v
-Baseline C(P), Q(P), E(P)
-       |
-       v
-Git reference worktree + refactor worktree
-       |
-       v
-Audit (77 criterios) -> Plan aprobado
-       |
-       v
-Cambio atómico -> Paridad -> Ledger
-       |              |
-       |         divergencia
-       |              v
-       |         Diagnóstico diferencial
-       v
-AS-BUILT + Reporte
-```
+- Arqueología top-down/bottom-up, diagramas ASCII AS-IS/AS-BUILT, segmentación y clasificación de evidencias.
+- Baseline C(P), Q(P), E(P), análisis diferencial e integral de cambios acumulados.
+- Máquina del tiempo de Git, worktrees de referencia/refactor, historia y diagnóstico.
+- Discovery pasivo sin lanzar herramientas externas detectadas y lectura confinada contra symlinks.
+- Git guard resistente al fsmonitor configurado en el repositorio y matcher de rutas por componentes.
+- Runner acotado POSIX `teseo_runner.py`: escritura atómica de **archivo existente**, control de versión/hash, autorización con expiración, registro PREPARED/COMMITTED, y recuperación del before-image.
+- Verificación independiente *conceptual* de invariantes observados y validación estructural de Evidence Graph.
 
 ## Estructura
 
-- [`SKILL.md`](SKILL.md): contrato principal del agente.
-- [`references/`](references/): fundamentos, 77 criterios, arquitectura bidireccional, diagramas, paridad, gobernanza, investigaciones, Git y plantillas.
-- [`scripts/`](scripts/): detectores, comprobaciones y adaptadores de stack opcionales.
-- [`tests/`](tests/): pruebas adversariales del guard Git.
-- [`MANIFEST.sha256`](MANIFEST.sha256): integridad de archivos principales de la skill.
-- [`crear_skill_refactor_v2.4.py`](crear_skill_refactor_v2.4.py): generador y empaquetador de la distribución.
-- [`docs/VALIDACION-v2.4.md`](docs/VALIDACION-v2.4.md): resultado de validación de la distribución v2.4.
-
-## Instalación como skill de Claude
-
-```bash
-# Global
-git clone https://github.com/devcicm/teseo-refactor-codebase.git ~/.claude/skills/refactor-codebase
-
-# Alternativa: instalar en un proyecto
-git clone https://github.com/devcicm/teseo-refactor-codebase.git .claude/skills/refactor-codebase
+```text
+SKILL.md
+MANIFEST.sha256
+references/                 # 77 criterios, fundamentos, gobernanza y v2.5
+scripts/
+  path_policy.py            # rutas seguras / matcher sin sobrealcance
+  discover.py               # candidatos del código; nunca pruebas concluyentes
+  environment_probe.py      # inventario PASIVO del entorno
+  git_guard.py              # identidad Git; no sandbox
+  teseo_runner.py           # primitivas de edición y recuperación acotadas
+  verify_invariants.py      # comparadores de invariantes observados
+  evidence_graph.py         # esquema / relaciones de evidencia
+  adapters/                 # ejemplos tecnológicos opcionales
+ tests/                     # pruebas sintéticas y adversariales
+crear_skill_refactor_v2.5.py # empaquetador reproducible
+crear_skill_refactor_v2.4.py # generador original, conservado por historia
 ```
 
-> La URL anterior es el destino de publicación previsto. Sólo funcionará después de crear el repositorio y subir su contenido.
-
-## Verificaciones locales
+## Instalación
 
 ```bash
-# Desde la raíz de esta skill
+git clone https://github.com/devcicm/teseo-refactor-codebase.git
+mkdir -p ~/.claude/skills
+cp -a teseo-refactor-codebase ~/.claude/skills/refactor-codebase
+```
+
+La versión empaquetada contiene exclusivamente `SKILL.md`, `references/`, `scripts/`, `tests/` y `MANIFEST.sha256`. También puede instalarse en `.claude/skills/refactor-codebase/` de un proyecto.
+
+## Verificación y empaquetado
+
+```bash
 python -m unittest discover -s tests -v
-python scripts/environment_probe.py --help
-python scripts/git_guard.py --help
-sha256sum -c MANIFEST.sha256
+python crear_skill_refactor_v2.5.py --check
+python crear_skill_refactor_v2.5.py
+(cd dist/refactor-codebase && sha256sum -c MANIFEST.sha256)
 ```
 
-El generador se ejecuta con `python crear_skill_refactor_v2.4.py` y crea una carpeta distribuible y su ZIP en el directorio actual.
+Para un cambio autorizado de fuentes, primero ejecutar tests y luego `python crear_skill_refactor_v2.5.py --sync-manifest`; CI **no edita** el árbol del repositorio ni hace push automático.
 
-## Límites de seguridad
+## Frontera de confianza / limitaciones
 
-**Una skill Markdown no es un sandbox ni una política de acceso obligatoria.** `git_guard.py` comprueba condiciones e informa desviaciones; para impedir escrituras fuera de alcance se requiere un ejecutor/runner que imponga los permisos y aisle los recursos externos. Git tampoco respalda automáticamente datos o servicios fuera del repositorio. Nunca ejecutar operaciones destructivas sobre el original como recuperación improvisada.
+Una skill Markdown no impone permisos OS, y ejecutar el guard voluntariamente no impide escrituras directas. El runner sólo es un mecanismo de control cuando el **contrato, directorio de control y permisos pertenecen a un coordinador que el agente no puede modificar**. La herramienta no aísla servicios o datos externos ni demuestra equivalencia total con pruebas parciales. `RECOVER` restaura before-images de archivos existentes; no revierte transacciones externas.
 
-Los scripts y diagnósticos de un repositorio analizado son **contenido no confiable**: revisar antes de ejecutar y limitar privilegios. Ninguna prueba parcial debe describirse como equivalencia total.
+Especificación y ejemplo de contrato: [`references/gobernanza-v2.5.md`](references/gobernanza-v2.5.md).
 
 ## Licencia
 
-**Pendiente de elección por el autor.** Que el repositorio sea público no concede automáticamente permisos para modificar, redistribuir o incorporar su contenido en otros proyectos. No se añadió una licencia sin autorización del titular.
+**Pendiente de elección por el titular**. Un repositorio público no implica permiso de redistribución o modificación por terceros.

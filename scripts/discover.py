@@ -7,6 +7,7 @@ import os
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
+from path_policy import read_confined, Denied
 
 SKIP_DIRS = {".git", "node_modules", "vendor", "dist", "build", "target",
              "bin", "obj", ".venv", "venv", "__pycache__"}
@@ -31,9 +32,11 @@ PATTERNS = {
 
 def walk(root: Path):
     for base, dirs, files in os.walk(root):
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not (Path(base)/d).is_symlink()]
         for name in files:
-            yield Path(base) / name
+            p = Path(base) / name
+            if not p.is_symlink():
+                yield p
 
 def main():
     ap = argparse.ArgumentParser()
@@ -51,8 +54,8 @@ def main():
         try:
             if p.stat().st_size > 250_000: large.append(rel)
             if p.suffix.lower() not in LANG or p.stat().st_size > 1_000_000: continue
-            text = p.read_text(encoding="utf-8", errors="ignore")
-        except OSError:
+            text = read_confined(root, rel, max_bytes=1_000_000).decode("utf-8", errors="ignore")
+        except (OSError, Denied):
             continue
         for cid, rx in PATTERNS.items():
             if rx.search(text): candidates[cid].append(rel)
@@ -60,7 +63,7 @@ def main():
         "root": str(root), "files_seen": files_seen, "languages": dict(langs),
         "manifests": sorted(manifests), "large_files": sorted(large),
         "candidates": {k: sorted(v) for k, v in sorted(candidates.items())},
-        "warning": "Candidates are not confirmed findings; inspect context before changes."
+        "warning": "Candidates are not confirmed findings; skips symlinks and refuses unconfined reads."
     }
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))

@@ -1,13 +1,11 @@
-# Python
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
 venv/
-# Productos del generador
+dist/
 /refactor-codebase/
 /refactor-codebase.zip
-# Estado operacional sensible (no versionar)
 /RUN-CONTRACT.json
 /RUN-STATE.json
 /TRACE-LEDGER.jsonl
