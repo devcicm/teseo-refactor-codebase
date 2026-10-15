@@ -1,0 +1,36 @@
+name: Publish Teseo skill sources
+on:
+  push:
+    paths:
+      - "crear_skill_refactor_v2.4.py"
+      - ".github/workflows/publish-skill.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Generate and verify skill
+        run: |
+          python crear_skill_refactor_v2.4.py
+          test -f refactor-codebase/SKILL.md
+          (cd refactor-codebase && sha256sum -c MANIFEST.sha256)
+      - name: Publish generated files
+        run: |
+          cp -a refactor-codebase/. .
+          git add SKILL.md MANIFEST.sha256 references scripts tests
+          if ! git diff --cached --quiet; then
+            git -c user.name="github-actions[bot]" \
+                -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+                commit -m "build: publish Teseo v2.4 skill sources"
+            git push
+          fi
