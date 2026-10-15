@@ -118,7 +118,7 @@ def status_paths(repo):
     return sorted(set(out))
 
 def check_contract(contract, mode, target=None):
-    if not isinstance(contract, dict) or contract.get('protocol') != 'teseo-v2.4':
+    if not isinstance(contract, dict) or contract.get('protocol') not in ('teseo-v2.4', 'teseo-v2.5'):
         raise Blocked('INVALID_CONTRACT_VERSION')
     repo = contract.get('repository', {})
     must = ('refactorWorktree', 'gitDir', 'gitCommonDir', 'expectedBranch', 'lastVerifiedCommit')

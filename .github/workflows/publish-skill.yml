@@ -17,6 +17,7 @@ jobs:
       - name: Tests and integrity
         run: |
           python -m unittest discover -s tests -v
+          python scripts/version_audit.py --self-check
           python crear_skill_refactor_v2.5.py --check
           python crear_skill_refactor_v2.5.py
           cd dist/refactor-codebase && sha256sum -c MANIFEST.sha256

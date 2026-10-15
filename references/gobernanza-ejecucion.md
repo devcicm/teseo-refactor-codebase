@@ -1,3 +1,5 @@
+> **Documento histórico del protocolo `teseo-v2.4`.** El nuevo runner usa `teseo-v2.5`, compatible de forma explícita con las verificaciones del guard; el contrato actual se describe en `references/gobernanza-v2.5.md` y la política de versiones en `references/versionado-y-proposito.md`. No usar el JSON de ejemplo antiguo como autorización nueva.
+
 # Gobernanza de ejecución, ambigüedad e integridad de contexto
 
 ## Principios

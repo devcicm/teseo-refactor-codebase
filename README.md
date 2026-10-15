@@ -1,8 +1,8 @@
-# Teseo — Refactor Codebase Skill v2.5
+# Teseo — Refactor Codebase Skill v2.5.0-rc.1
 
 Skill de **refactorización incremental con trazabilidad y comprobación de contratos**, fundamentada en el barco de Teseo. Independiente del lenguaje, framework, base de datos o sistema operativo analizado.
 
-## Evolución v2.5
+## Evolución v2.5 (candidata, no release estable)
 
 El catálogo **77 criterios originales** (N 10, D 6, FE 24, BE 22, ALG 5, RES 5, OBJ 5) se conserva sin renumeraciones. V2.5 agrega guardas ejecutables de alcance e integridad, pero **no implementa automáticamente los 77 criterios como transformaciones**.
 
@@ -14,11 +14,21 @@ El catálogo **77 criterios originales** (N 10, D 6, FE 24, BE 22, ALG 5, RES 5,
 - Runner acotado POSIX `teseo_runner.py`: escritura atómica de **archivo existente**, control de versión/hash, autorización con expiración, registro PREPARED/COMMITTED, y recuperación del before-image.
 - Verificación independiente *conceptual* de invariantes observados y validación estructural de Evidence Graph.
 
+## Contrato verificable de versión y propósito
+
+- **Release candidato:** `2.5.0-rc.1`, fuente única `VERSION.json`; `main` sigue representando la línea anterior hasta que se acepte el PR.
+- **Protocolo:** `teseo-v2.5` (no debe confundirse con versión de producto). El guard es compatible con contratos heredados `teseo-v2.4` y nuevos `teseo-v2.5`.
+- **Catálogo:** 77 criterios documentados; no se afirman 77 automatizadores.
+- **Capacidades reales:** `CAPABILITIES.json` separa implementado/probado, implementado limitado, documentación y pendiente.
+- **Proyectos refactorizados:** la compuerta **Version-Purpose-Compatibility** separa promesas, implementación demostrada, versión declarada, resuelta y rango compatible. Ver `references/versionado-y-proposito.md`.
+
 ## Estructura
 
 ```text
 SKILL.md
 MANIFEST.sha256
+VERSION.json                # versión única de distribución + protocolo + catálogo
+CAPABILITIES.json           # capacidades declaradas y respaldos
 references/                 # 77 criterios, fundamentos, gobernanza y v2.5
 scripts/
   path_policy.py            # rutas seguras / matcher sin sobrealcance
@@ -29,7 +39,7 @@ scripts/
   verify_invariants.py      # comparadores de invariantes observados
   evidence_graph.py         # esquema / relaciones de evidencia
   adapters/                 # ejemplos tecnológicos opcionales
- tests/                     # pruebas sintéticas y adversariales
+tests/                      # pruebas sintéticas y adversariales
 crear_skill_refactor_v2.5.py # empaquetador reproducible
 crear_skill_refactor_v2.4.py # generador original, conservado por historia
 ```
@@ -37,17 +47,18 @@ crear_skill_refactor_v2.4.py # generador original, conservado por historia
 ## Instalación
 
 ```bash
-git clone https://github.com/devcicm/teseo-refactor-codebase.git
+git clone --branch feat/teseo-v2.5 https://github.com/devcicm/teseo-refactor-codebase.git
 mkdir -p ~/.claude/skills
 cp -a teseo-refactor-codebase ~/.claude/skills/refactor-codebase
 ```
 
-La versión empaquetada contiene exclusivamente `SKILL.md`, `references/`, `scripts/`, `tests/` y `MANIFEST.sha256`. También puede instalarse en `.claude/skills/refactor-codebase/` de un proyecto.
+La versión empaquetada contiene `SKILL.md`, `VERSION.json`, `CAPABILITIES.json`, `references/`, `scripts/`, `tests/` y `MANIFEST.sha256`. También puede instalarse en `.claude/skills/refactor-codebase/` de un proyecto.
 
 ## Verificación y empaquetado
 
 ```bash
 python -m unittest discover -s tests -v
+python scripts/version_audit.py --self-check
 python crear_skill_refactor_v2.5.py --check
 python crear_skill_refactor_v2.5.py
 (cd dist/refactor-codebase && sha256sum -c MANIFEST.sha256)

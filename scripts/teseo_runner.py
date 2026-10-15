@@ -113,7 +113,7 @@ def run(contract_path,intent_path,content_path=None,recover=False):
     try:
         fcntl.flock(lock_fd,fcntl.LOCK_EX)
         # Identity and allowed paths are checked under the local runner lock.
-        pre=dict(c);pre['protocol']='teseo-v2.4'
+        pre=c  # El guard valida explicitamente compatibilidad v2.4/v2.5.
         check_contract(pre,'preflight',target)
         ledger=read_ledger(state)
         run_id=c['runId']; step=intent['stepId']

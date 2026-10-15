@@ -1,4 +1,4 @@
-# Validación técnica — Teseo v2.5
+# Validación técnica — Teseo v2.5.0-rc.1
 
 **Fecha:** 2026-10-14. **Base:** Teseo v2.4 (original local preservado y worktree separado). **Cambios:** v2.5 en `feat/teseo-v2.5`.
 
@@ -25,6 +25,15 @@
 | Suite completa | **29/29 PASS** | Python unittest sobre fixtures sintéticos |
 | MANIFEST SHA-256 | PASS | se genera desde fuentes v2.5 y verifica paquete |
 | ZIP determinista | PASS | reproducible sobre la misma fuente |
+
+## Identidad de versión auditada
+
+La distribución candidata se identifica en `VERSION.json` como `2.5.0-rc.1`;
+el runner usa el protocolo `teseo-v2.5`, admitido ahora explícitamente por
+`git_guard.py` junto al protocolo histórico `teseo-v2.4`. El catálogo se
+mantiene con cuenta 77 + SHA-256 y existe `CAPABILITIES.json` para separar
+promesas, implementación y cobertura de pruebas. Para pruebas actualizadas,
+consultar `scripts/version_audit.py --self-check` y suite actual de tests.
 
 ## Límites / NO VERIFICADO
 

@@ -14,7 +14,21 @@ description: >
   contrato; se clasifican y documentan, pero no se ejecutan como refactor puro.
 ---
 
-# Refactorización de codebase (protocolo de Teseo) — v2.5
+# Refactorización de codebase (protocolo de Teseo) — v2.5.0-rc.1
+
+## Identidad de version, propósito y release
+
+La fuente canónica del release es `VERSION.json` (`2.5.0-rc.1`, candidato
+sin publicar como versión estable); el esquema de protocolo del runner es
+`teseo-v2.5` y es **independiente** de la versión de la distribución.
+Los 77 criterios se custodian por SHA-256 y cuenta, no por una promesa de
+77 transformadores automáticos. `CAPABILITIES.json` es el inventario
+verificable de lo implementado, probado, documental y pendiente.
+
+Antes de refactorizar, reconcilia el **propósito declarado y comprobado**
+del proyecto, su versionado efectivo y la compatibilidad de cada dimensión
+activa E(P). Si la versión real es incierta, NO afirmar equivalencia total.
+Ver `references/versionado-y-proposito.md` y `scripts/version_audit.py`.
 
 ## Principio rector
 
